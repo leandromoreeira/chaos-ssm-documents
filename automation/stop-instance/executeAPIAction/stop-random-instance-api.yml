@@ -1,11 +1,8 @@
 ---
-description: Stop a random instance in a particular AZ with tag filter
+description: Stop a random instance with tag filter
 schemaVersion: '0.3'
 assumeRole: "{{ AutomationAssumeRole }}"
 parameters:
-  AvailabilityZone:
-    type: String
-    description: "(Required) The Availability Zone to impact"
   TagName:
     type: String
     description: "The tag name to filter instances"
@@ -24,8 +21,6 @@ mainSteps:
     Service: ec2
     Api: DescribeInstances
     Filters:
-    -  Name: availability-zone
-       Values: ["{{ AvailabilityZone }}"]
     -  Name: instance-state-name
        Values: ["running"]
     -  Name: tag:{{ TagName }}
@@ -57,7 +52,7 @@ mainSteps:
   inputs:
     Service: ec2
     Api: DescribeInstanceStatus
-    InstanceIds: 
+    InstanceIds:
       - "{{ SeletRandomInstance.InstanceId }}"
     PropertySelector: "$.InstanceStatuses[0].InstanceState.Name"
     DesiredValues:
@@ -66,31 +61,24 @@ mainSteps:
   action: aws:changeInstanceState
   onFailure: Continue
   inputs:
-    InstanceIds: 
+    InstanceIds:
       - "{{ SeletRandomInstance.InstanceId }}"
     DesiredState: stopped
-- name: forceStopInstances
-  action: aws:changeInstanceState
-  inputs:
-    InstanceIds: 
-      - "{{ SeletRandomInstance.InstanceId }}"
-    CheckStateOnly: false
-    DesiredState: stopped
-    Force: true
 - name: verifyInstanceStateStopped
   action: aws:waitForAwsResourceProperty
   timeoutSeconds: 60
+  onFailure: Continue
   inputs:
     Service: ec2
     Api: DescribeInstanceStatus
     IncludeAllInstances: true
-    InstanceIds: 
+    InstanceIds:
       - "{{ SeletRandomInstance.InstanceId }}"
     PropertySelector: "$.InstanceStatuses[0].InstanceState.Name"
     DesiredValues:
       - stopped
       - terminated
-
+      - shutting-down
 outputs:
 - "listInstances.InstanceIds"
 

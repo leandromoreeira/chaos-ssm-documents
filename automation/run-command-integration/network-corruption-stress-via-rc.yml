@@ -1,6 +1,6 @@
 ---
 schemaVersion: '0.3'
-description: Execute a ramdom CPU stress via Run Command with tag filter
+description: Execute a ramdom Network Corruption Stress via Run Command with tag filter
 assumeRole: "{{AutomationAssumeRole}}"
 parameters:
   AutomationAssumeRole:
@@ -13,17 +13,19 @@ parameters:
   TagValue:
     type: String
     description: "The tag value to filter instances"
-  # InstanceIds:
-  #   type: StringList
-  #   description: "(Required) EC2 Instance(s) to target"
+  interface:
+    type: String
+    description: Specify the interface to add loss to. (Required)
+    default: eth0
+  corrupt:
+    type: String
+    description: The % of corrupt to add to the network.
+    default: "5"
+    # Corrupts 5% of packets
   duration:
     type: String
-    description: The duration - in seconds - of the attack. (Required)
-    default: "60"
-  cpu:
-    type: String
-    description: 'Specify the number of CPU stressors to use (default all)'
-    default: "0"
+    description: The duration - in minutes - of the attack. (Required)
+    default: "1"
 mainSteps:
   - name: listInstances
     action: aws:executeAwsApi
@@ -69,17 +71,18 @@ mainSteps:
       PropertySelector: "$.InstanceStatuses[0].InstanceState.Name"
       DesiredValues:
         - running
-  - name: RunChaosCPU
+  - name: RunChaosNetworkLossStress
     action: aws:runCommand
-    maxAttempts: 3
+    maxAttempts: 1
     timeoutSeconds: 300
     onFailure: Abort
     inputs:
-      DocumentName: ChaosSsm-CpuStress
+      DocumentName: ChaosSsm-NetworkCorruptionStress
       InstanceIds:
         - "{{ SeletRandomInstance.InstanceId }}"
       Parameters:
-        cpu: "{{ cpu }}"
+        interface: "{{ interface }}"
+        corrupt: "{{ corrupt }}"
         duration: "{{ duration }}"
         InstallDependencies: "True"
   - name: verifyInstanceStateRunningAfter

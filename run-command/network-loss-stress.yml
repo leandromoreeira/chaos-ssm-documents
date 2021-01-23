@@ -10,11 +10,6 @@ parameters:
     type: String
     description: The % of packet to drop.
     default: "7"
-  correlation:
-    type: String
-    description: The correlation with previous packet loss.
-    default: "25"
-  # Drops 7% of packets with 25% correlation
   # 7% is enough that TCP will not fail completely
   duration:
     type: String
@@ -54,10 +49,10 @@ mainSteps:
   name: RevertCommandScheduling
   inputs:
     runCommand:
-    - "echo 'tc qdisc del dev {{ interface }} root netem loss {{ loss }}% {{ correlation }}%' | at now + {{ duration }} minutes"
+    - "echo 'tc qdisc del dev {{ interface }} root netem loss random {{ loss }}%' | at now + {{ duration }} minutes"
 - action: aws:runShellScript
   name: AlterNetworkInterface
   inputs:
     runCommand:
-    - "tc qdisc add dev {{ interface }} root netem loss {{ loss }}% {{ correlation }}%"
+    - "tc qdisc add dev {{ interface }} root netem loss random {{ loss }}%"
     - "tc qdisc show"
